@@ -1,0 +1,9 @@
+[package]
+name = "yt-live-recorder-core"
+version = "0.1.0"
+edition = "2021"
+
+# 不碰 Tauri 的純邏輯：MXF 規格、命名、yt-dlp / ffmpeg 參數組裝和輸出解析。CI 只跑這裡的測試。
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

@@ -1,0 +1,137 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YT 直播錄製工具</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>YT 直播錄製工具</h1>
+    <nav>
+      <button class="tab active" data-tab="record">錄製</button>
+      <button class="tab" data-tab="settings">設定</button>
+    </nav>
+    <span id="updateBadge" class="badge hidden"></span>
+  </header>
+
+  <main>
+    <section id="tab-record">
+      <div id="toolsWarning" class="warning hidden">
+        還沒有 ffmpeg / yt-dlp，請到「設定」按「下載工具」。
+      </div>
+
+      <form id="newTask" class="card" autocomplete="off">
+        <h2>新增錄製</h2>
+        <label class="row">
+          <span>直播網址</span>
+          <input id="url" type="text" placeholder="https://www.youtube.com/watch?v=…" />
+          <button type="button" id="checkBtn">查詢</button>
+        </label>
+        <div id="checkResult" class="hint"></div>
+        <label class="row">
+          <span>名稱</span>
+          <input id="name" type="text" placeholder="例：香蕉蛋糕 → 香蕉蛋糕/香蕉蛋糕_001.mxf" />
+        </label>
+        <label class="row">
+          <span>存檔路徑</span>
+          <input id="outputDir" type="text" placeholder="例：\\NAS\直播錄影" />
+          <button type="button" id="pickDir">選擇…</button>
+        </label>
+        <div class="row">
+          <span>錄製起點</span>
+          <label class="inline"><input type="radio" name="mode" value="now" checked /> 從現在開始錄</label>
+          <label class="inline"><input type="radio" name="mode" value="start" /> 從直播開頭錄</label>
+        </div>
+        <div class="row">
+          <span>開始時間</span>
+          <label class="inline"><input type="checkbox" id="useSchedule" /> 排程</label>
+          <input id="startAt" type="datetime-local" disabled />
+          <span class="hint">不勾就馬上開始（直播還沒開始會自動等）</span>
+        </div>
+        <div class="row">
+          <span></span>
+          <button type="submit" class="primary" id="startBtn">開始錄製</button>
+          <span class="hint" id="segmentHint"></span>
+        </div>
+        <div id="formError" class="error"></div>
+      </form>
+
+      <div id="tasks"></div>
+    </section>
+
+    <section id="tab-settings" class="hidden">
+      <div class="card">
+        <h2>錄製</h2>
+        <label class="row">
+          <span>預設存檔路徑</span>
+          <input id="setOutputDir" type="text" />
+          <button type="button" id="setPickDir">選擇…</button>
+        </label>
+        <label class="row">
+          <span>每段長度</span>
+          <input id="setSegment" type="number" min="1" max="240" class="short" /> 分鐘
+          <span class="hint">剪輯可以邊錄邊剪；段太短檔案會很多</span>
+        </label>
+        <div class="row">
+          <span>預設錄製起點</span>
+          <label class="inline"><input type="radio" name="setMode" value="now" /> 從現在開始錄</label>
+          <label class="inline"><input type="radio" name="setMode" value="start" /> 從直播開頭錄</label>
+        </div>
+        <label class="row">
+          <span>同時轉檔</span>
+          <input id="setWorkers" type="number" min="1" max="8" class="short" /> 段
+          <span class="hint">改了要重開程式才生效</span>
+        </label>
+        <label class="row">
+          <span></span>
+          <label class="inline"><input type="checkbox" id="setDeleteTs" /> 轉成 MXF 後刪掉 .ts 原始錄影</label>
+        </label>
+        <div class="row">
+          <span></span>
+          <button type="button" class="primary" id="saveSettings">儲存</button>
+          <span id="settingsStatus" class="hint"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>工具</h2>
+        <table class="kv">
+          <tr><th>ffmpeg</th><td id="toolFfmpeg"></td></tr>
+          <tr><th>ffprobe</th><td id="toolFfprobe"></td></tr>
+          <tr><th>yt-dlp</th><td id="toolYtdlp"></td></tr>
+        </table>
+        <div class="row">
+          <button type="button" id="installAll">下載工具</button>
+          <button type="button" id="updateYtdlp">更新 yt-dlp</button>
+          <span class="hint">YouTube 改版導致錄不到時，先按「更新 yt-dlp」</span>
+        </div>
+        <progress id="toolsProgress" class="hidden" max="1" value="0"></progress>
+        <div id="toolsStatus" class="hint"></div>
+      </div>
+
+      <div class="card">
+        <h2>MXF 規格</h2>
+        <p class="hint">
+          照 EBC 轉檔器：MXF OP1a ／ MPEG-2 4:2:2 HL 50 Mb/s ／ 1920×1080 29.97i 上場優先 ／ BT.709 ／
+          PCM 24-bit 48 kHz × 8 軌（1 左、2 右、其餘靜音）。規格集中在 <code>core/src/spec.rs</code>。
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>版本</h2>
+        <div class="row">
+          <span id="versionLabel"></span>
+          <button type="button" id="checkUpdateBtn">檢查更新</button>
+          <button type="button" id="installUpdateBtn" class="primary hidden">更新並重新啟動</button>
+        </div>
+        <progress id="updateProgress" class="hidden" max="1" value="0"></progress>
+        <div id="updateStatus" class="hint"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
