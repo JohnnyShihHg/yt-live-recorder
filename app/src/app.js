@@ -287,11 +287,12 @@ $("tasks").addEventListener(
 
 // --- 關閉 ---
 
-listen("close-requested", async () => {
-  const ok = await dialog.ask("還有直播在錄製或等待中。關閉程式會停止錄製（目前這段會存好），確定要關閉嗎？", {
-    title: "關閉程式",
-    kind: "warning",
-  });
+listen("close-requested", async ({ payload }) => {
+  const lines = [];
+  if (payload?.recording) lines.push("還有直播在錄製或等待中，關閉會停止錄製（目前這段會存好）。");
+  if (payload?.converting) lines.push(`還有 ${payload.converting} 段在轉 MXF，關閉會中斷轉檔，這幾段不會有 .mxf（.ts 還在）。`);
+  lines.push("確定要關閉嗎？");
+  const ok = await dialog.ask(lines.join("\n\n"), { title: "關閉程式", kind: "warning" });
   if (ok) {
     $("tasks").insertAdjacentHTML("afterbegin", '<div class="warning">正在停止錄製並關閉…</div>');
     await invoke("quit_app");

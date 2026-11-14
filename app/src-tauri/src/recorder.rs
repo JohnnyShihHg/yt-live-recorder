@@ -228,6 +228,18 @@ impl Recorder {
         self.tasks.lock().unwrap().iter().any(|t| t.state.lock().unwrap().phase.active())
     }
 
+    /// 還在等待轉檔或轉檔中的段數（關程式前提醒用）
+    pub fn pending_converts(&self) -> usize {
+        self.tasks
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|t| {
+                t.state.lock().unwrap().segments.values().filter(|s| matches!(s.status, SegStatus::Queued | SegStatus::Converting)).count()
+            })
+            .sum()
+    }
+
     pub fn create(self: &Arc<Self>, mut cfg: NewTask) -> Result<TaskView, String> {
         cfg.url = cfg.url.trim().to_string();
         if !cfg.url.starts_with("http") {
@@ -642,6 +654,24 @@ impl Recorder {
 
 // --- 轉檔 ---
 
+/// 轉檔中的 ffmpeg（PID）。Windows 上主程式結束不會連帶結束子程序，關程式時要自己收掉。
+static CONVERT_PIDS: Mutex<Vec<u32>> = Mutex::new(Vec::new());
+
+/// 關程式前呼叫：結束所有轉檔中的 ffmpeg，等工人把 .part 清掉。
+pub fn kill_converts() {
+    let pids: Vec<u32> = CONVERT_PIDS.lock().unwrap().clone();
+    if pids.is_empty() {
+        return;
+    }
+    for pid in &pids {
+        let _ = command(Path::new("taskkill")).args(["/PID", &pid.to_string(), "/F"]).output();
+    }
+    let end = Instant::now() + Duration::from_secs(5);
+    while !CONVERT_PIDS.lock().unwrap().is_empty() && Instant::now() < end {
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
 fn convert_worker(app: AppHandle, rx: Arc<Mutex<Receiver<Job>>>) {
     loop {
         let job = match rx.lock().unwrap().recv() {
@@ -700,6 +730,8 @@ fn convert(app: &AppHandle, t: &Task, index: u32, on_progress: &dyn Fn(f64)) -> 
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("ffmpeg 啟動失敗：{e}"))?;
+    let pid = child.id();
+    CONVERT_PIDS.lock().unwrap().push(pid);
     // -stats 的進度用 \r 分隔，自己切
     let mut stderr = child.stderr.take().unwrap();
     let mut buf = Vec::new();
@@ -725,9 +757,14 @@ fn convert(app: &AppHandle, t: &Task, index: u32, on_progress: &dyn Fn(f64)) -> 
             }
         }
     }
-    let status = child.wait().map_err(|e| e.to_string())?;
-    if !status.success() {
+    let status = child.wait();
+    let ok = matches!(status, Ok(ref s) if s.success());
+    if !ok {
         let _ = std::fs::remove_file(&part);
+    }
+    CONVERT_PIDS.lock().unwrap().retain(|&p| p != pid);
+    let status = status.map_err(|e| e.to_string())?;
+    if !ok {
         return Err(if last_err.is_empty() { format!("ffmpeg 結束（{status}）") } else { last_err });
     }
     if dest.exists() {

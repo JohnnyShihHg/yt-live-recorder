@@ -97,6 +97,7 @@ fn quit_app(app: tauri::AppHandle, rec: Rec) {
     CLOSING.store(true, Ordering::SeqCst);
     rec.stop_all();
     rec.wait_idle(Duration::from_secs(20));
+    recorder::kill_converts();
     app.exit(0);
 }
 
@@ -126,10 +127,12 @@ fn main() {
                     return;
                 }
                 let rec = window.state::<Arc<Recorder>>();
-                if rec.any_active() {
-                    // 還在錄：先問使用者（見 app.js 的 close-requested）
+                let recording = rec.any_active();
+                let converting = rec.pending_converts();
+                if recording || converting > 0 {
+                    // 還在錄或還在轉檔：先問使用者（見 app.js 的 close-requested）
                     api.prevent_close();
-                    let _ = window.emit("close-requested", ());
+                    let _ = window.emit("close-requested", serde_json::json!({ "recording": recording, "converting": converting }));
                 }
             }
         })
