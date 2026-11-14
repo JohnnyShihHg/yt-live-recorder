@@ -59,7 +59,9 @@ cargo test -p yt-live-recorder-core --test live_record -- --ignored        :: �
 ### 發布
 
 `scripts/release.sh 0.1.1 "說明"` → 推標籤 → GitHub Actions 打包安裝檔並發布，已安裝的程式會提示更新。
-repo 要先設好 secrets `TAURI_SIGNING_PRIVATE_KEY`、`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（跟關鍵標題整理工具同一組金鑰）。
+repo 要先設好 secrets `TAURI_SIGNING_PRIVATE_KEY`、`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（這個程式自己的金鑰，私鑰位置見 [docs/交接.md](docs/交接.md)）。
+
+目前進度、還沒做和待實測的項目見 [docs/交接.md](docs/交接.md)。
 
 ## 之後的階段
 

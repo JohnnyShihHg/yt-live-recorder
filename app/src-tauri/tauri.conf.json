@@ -49,7 +49,7 @@
       "endpoints": [
         "https://github.com/JohnnyShihHg/yt-live-recorder/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ3Q0M1OUE1MzM3RTNGRjIKUldUeVAzNHpwVm5NMXc3ZGN0N25aYXhPNmFzclJ2WkcyUEFXUThpUWMyd2hoN1l2N201S3JOZEsK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg4RTNDNTQ0NkU2REFBNDEKUldSQnFtMXVSTVhqaUhYTUYveERVQTh3cFZYTFlhaW9FK0paRitrZW8yRGp6L2s2YkJNTlBlcGMK",
       "windows": {
         "installMode": "passive"
       }
